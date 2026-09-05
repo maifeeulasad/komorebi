@@ -100,7 +100,7 @@ install(FILES data/Other/komorebi.desktop DESTINATION /usr/share/applications/)
 install(FILES data/Other/wallpapercreator.desktop DESTINATION /usr/share/applications/)
 
 ######### Run the upgrade script #########
-install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postinst.sh)")
+install(CODE "execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postinst)")
 
 # Packaging configuration
 set(CPACK_GENERATOR "DEB")
