@@ -248,7 +248,30 @@ namespace Komorebi.Utilities {
 
 	}
 
+	/*
+	 * A wallpaper/file name coming from a config file must be a single, plain
+	 * path component. Reject empty values, path separators, and "." / ".." so a
+	 * malicious pack can't escape the wallpapers directory via traversal.
+	 */
+	public bool isSafePathComponent (string? name) {
+
+		if(name == null || name == "" || name == "." || name == "..")
+			return false;
+
+		if(name.contains("/") || name.contains("\\") || name.contains("\0"))
+			return false;
+
+		return true;
+	}
+
 	void readWallpaperFile () {
+
+		// Reject traversal attempts in the configured wallpaper name before
+		// using it to build a filesystem path.
+		if(!isSafePathComponent(wallpaperName)) {
+			print(@"[ERROR]: unsafe wallpaper name rejected: $wallpaperName\n");
+			wallpaperName = "foggy_sunny_mountain";
+		}
 
 		// check if the wallpaper exists
 		// also, make sure the wallpaper name is valid
@@ -304,6 +327,13 @@ namespace Komorebi.Utilities {
 
 		if(wallpaperType == "video") {
 			videoFileName = wallpaperKeyFile.get_string("Info", "VideoFileName");
+
+			// The video file must live inside the wallpaper's own directory.
+			if(!isSafePathComponent(videoFileName)) {
+				print(@"[ERROR]: unsafe video file name rejected: $videoFileName\n");
+				videoFileName = "";
+			}
+
 			wallpaperParallax = assetVisible = false;
 			return;
 		}
