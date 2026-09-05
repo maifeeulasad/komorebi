@@ -29,7 +29,7 @@ security releases:
 
 | Dependency        | Minimum (see CMakeLists) | Why it matters                          |
 | ----------------- | ------------------------ | --------------------------------------- |
-| `webkit2gtk-4.0`  | as packaged              | Renders `web_page` wallpapers (JS/HTML) |
+| `webkit2gtk-4.1`  | 4.1 (4.0 fallback)       | Renders `web_page` wallpapers (JS/HTML) |
 | `gtk+-3.0`        | >= 3.14                  | UI toolkit                              |
 | `glib-2.0`        | >= 2.38                  | Config parsing, GIO                     |
 | `clutter-gst-3.0` | as packaged              | Video wallpaper playback (GStreamer)    |
