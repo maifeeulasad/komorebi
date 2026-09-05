@@ -11,7 +11,20 @@ set (ARCHIVE_NAME komorebi-${VERSION})
 
 
 find_package(PkgConfig)
-pkg_check_modules(DEPS REQUIRED gtk+-3.0 glib-2.0>=2.38 gee-0.8 webkit2gtk-4.0 clutter-gtk-1.0 clutter-1.0 clutter-gst-3.0)
+
+# webkit2gtk-4.0 was removed on modern distros (Ubuntu 22.04+/24.04).
+# Prefer webkit2gtk-4.1 (same WebKit2/GTK3 API, built against libsoup3) and
+# fall back to 4.0 on older systems. One variable drives both the pkg-config
+# check and the Vala --pkg name below.
+pkg_check_modules(WEBKIT QUIET webkit2gtk-4.1)
+if(WEBKIT_FOUND)
+    set(WEBKIT_PKG webkit2gtk-4.1)
+else()
+    set(WEBKIT_PKG webkit2gtk-4.0)
+endif()
+message(STATUS "Using WebKit package: ${WEBKIT_PKG}")
+
+pkg_check_modules(DEPS REQUIRED gtk+-3.0 glib-2.0>=2.38 gee-0.8 ${WEBKIT_PKG} clutter-gtk-1.0 clutter-1.0 clutter-gst-3.0)
 add_definitions(${DEPS_CFLAGS})
 
 link_directories(${DEPS_LIBRARY_DIRS})
@@ -49,7 +62,7 @@ PACKAGES
     gee-0.8
     clutter-gtk-1.0
     clutter-gst-3.0
-    webkit2gtk-4.0
+    ${WEBKIT_PKG}
 OPTIONS
     --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi/
    	--disable-warnings
@@ -68,7 +81,7 @@ PACKAGES
     gee-0.8
     gtk+-3.0
     gstreamer-1.0
-    webkit2gtk-4.0
+    ${WEBKIT_PKG}
 OPTIONS
     --vapidir=${CMAKE_CURRENT_SOURCE_DIR}/vapi/
     --disable-warnings
@@ -125,7 +138,7 @@ set(CPACK_PACKAGE_VERSION_PATCH 0)
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Komorebi")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postinst;${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postrm;")
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libgtk-3-0 (>= 3.14), libglib2.0-0 (>= 2.38), libgee-0.8-2, libclutter-gtk-1.0-0, libclutter-1.0-0, libclutter-gst-3.0-0, libwebkit2gtk-4.0-37")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libgtk-3-0 (>= 3.14), libglib2.0-0 (>= 2.38), libgee-0.8-2, libclutter-gtk-1.0-0, libclutter-1.0-0, libclutter-gst-3.0-0, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_SECTION "system")
 
