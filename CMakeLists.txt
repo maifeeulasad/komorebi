@@ -81,26 +81,35 @@ add_executable(komorebi-wallpaper-creator ${WALLPAPER_CREATOR})
 target_link_libraries(komorebi ${DEPS_LIBRARIES} -lm)
 target_link_libraries(komorebi-wallpaper-creator ${DEPS_LIBRARIES} -lm)
 
-install(TARGETS komorebi RUNTIME DESTINATION /System/Applications/)
-install(TARGETS komorebi-wallpaper-creator RUNTIME DESTINATION /System/Applications/)
+# Executables are installed to a non-standard system path that the daemon
+# runs from every session; pin explicit, non-world-writable permissions so a
+# local user cannot replace the binary or its resources.
+install(TARGETS komorebi RUNTIME DESTINATION /System/Applications/
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS komorebi-wallpaper-creator RUNTIME DESTINATION /System/Applications/
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 
 ######### Wallpapers ############
-install(DIRECTORY data/Wallpapers/ DESTINATION /System/Resources/Komorebi)
+install(DIRECTORY data/Wallpapers/ DESTINATION /System/Resources/Komorebi
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+    DIRECTORY_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 
 ######### Fonts ############
 install(DIRECTORY data/Fonts/ DESTINATION /usr/share/fonts)
 
 ######### Icons ############
-install(DIRECTORY data/Icons/ DESTINATION /System/Resources/Komorebi)
+install(DIRECTORY data/Icons/ DESTINATION /System/Resources/Komorebi
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+    DIRECTORY_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 ######### Other ############
 install(FILES data/Other/komorebi.desktop DESTINATION /usr/share/applications/)
 install(FILES data/Other/wallpapercreator.desktop DESTINATION /usr/share/applications/)
 
 ######### Run the upgrade script #########
-install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postinst.sh)")
+install(CODE "execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/data/Other/postinst)")
 
 # Packaging configuration
 set(CPACK_GENERATOR "DEB")
