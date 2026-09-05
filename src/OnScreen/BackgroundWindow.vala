@@ -365,7 +365,10 @@ namespace Komorebi.OnScreen {
 			wallpaperPixbuf = new Gdk.Pixbuf.from_file_at_scale(@"/System/Resources/Komorebi/$wallpaperName/wallpaper.jpg",
 																scaleWidth, scaleHeight, false);
 
-			wallpaperImage.set_data (wallpaperPixbuf.get_pixels(), Cogl.PixelFormat.RGB_888,
+			// Upload RGBA — RGB_888 textures abort on many drivers.
+			wallpaperPixbuf = Utilities.ensureRGBA (wallpaperPixbuf);
+
+			wallpaperImage.set_data (wallpaperPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
 							 wallpaperPixbuf.get_width(), wallpaperPixbuf.get_height(),
 							 wallpaperPixbuf.get_rowstride());
 		}
