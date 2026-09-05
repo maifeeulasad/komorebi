@@ -104,6 +104,7 @@ namespace Komorebi.OnScreen {
 			bubbleMenu = new BubbleMenu(this);
 			assetActor = new AssetActor(this);
 			dateTimeBox = new DateTimeBox(this);
+			hardenWebView();
 			webViewActor = new GtkClutter.Actor.with_contents(webView);
 
 			if(enableVideoWallpapers) {
@@ -405,10 +406,48 @@ namespace Komorebi.OnScreen {
 			return true;
 		}
 
+		/*
+		 * Locks down the WebView used for `web_page` wallpapers.
+		 *
+		 * A wallpaper pack's config controls the URL that gets loaded here
+		 * (see Utilities.readWallpaperFile), so the page must be treated as
+		 * untrusted content that runs persistently on the desktop. We drop the
+		 * most dangerous capabilities while keeping the feature usable.
+		 */
+		void hardenWebView () {
+
+			var settings = webView.get_settings();
+
+			// A file:// wallpaper page must not be able to reach the rest of
+			// the local filesystem or arbitrary origins.
+			settings.allow_universal_access_from_file_urls = false;
+			settings.allow_file_access_from_file_urls = false;
+
+			// Don't let untrusted pages mix in insecure sub-resources or spam
+			// the daemon's stdout via console.log.
+			settings.enable_write_console_messages_to_stdout = false;
+
+			// No plugins / Java; these are legacy remote-code surfaces.
+			settings.enable_plugins = false;
+			settings.enable_java = false;
+		}
+
 		// loads a web page from a URL
 		public void wallpaperFromUrl(owned string url) {
 
 			url = url.replace("{{screen_width}}", @"$screenWidth").replace("{{screen_height}}", @"$screenHeight");
+
+			// Only allow the schemes a wallpaper is expected to use. This blocks
+			// surprises like javascript:, data:, or app-launching URI handlers
+			// coming from an untrusted pack config.
+			var lower = url.down();
+			if(!(lower.has_prefix("http://") || lower.has_prefix("https://") || lower.has_prefix("file://"))) {
+				print(@"[WARNING]: refusing web_page wallpaper with unsupported URL scheme: $url\n");
+				return;
+			}
+
+			if(lower.has_prefix("http://"))
+				print("[WARNING]: web_page wallpaper is loading an insecure (http://) URL\n");
 
 			webView.load_uri(url);
 		}
