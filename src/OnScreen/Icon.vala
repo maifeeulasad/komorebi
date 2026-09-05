@@ -139,11 +139,13 @@ namespace Komorebi.OnScreen {
             if(pixbuf == null)
                 return;
 
+            var rgba = Utilities.ensureRGBA (pixbuf);
+
             try {
-                iconImage.set_data (pixbuf.get_pixels(),
-                                    pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                                    pixbuf.get_width(), pixbuf.get_height(),
-                                    pixbuf.get_rowstride());
+                iconImage.set_data (rgba.get_pixels(),
+                                    Cogl.PixelFormat.RGBA_8888,
+                                    rgba.get_width(), rgba.get_height(),
+                                    rgba.get_rowstride());
             } catch (GLib.Error e) {
                 warning ("failed to load icon '%s': %s", titleName, e.message);
             }

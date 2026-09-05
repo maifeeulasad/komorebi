@@ -41,10 +41,6 @@ namespace Komorebi.OnScreen {
         public void setAsset() {
 
             if(!assetVisible) {
-                pixbuf = null;
-                image.set_data (pixbuf.get_pixels(), pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                            pixbuf.get_width(), pixbuf.get_height(),
-                            pixbuf.get_rowstride());
                 fadeOut();
                 return;
             }
@@ -67,9 +63,10 @@ namespace Komorebi.OnScreen {
             else
                 pixbuf = new Gdk.Pixbuf.from_file(assetPath);
 
-            image.set_data (pixbuf.get_pixels(), pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                            pixbuf.get_width(), pixbuf.get_height(),
-                            pixbuf.get_rowstride());
+            var rgbaPixbuf = Utilities.ensureRGBA (pixbuf);
+            image.set_data (rgbaPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
+                            rgbaPixbuf.get_width(), rgbaPixbuf.get_height(),
+                            rgbaPixbuf.get_rowstride());
 
 
             x = 0;

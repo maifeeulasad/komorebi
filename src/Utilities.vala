@@ -140,6 +140,20 @@ namespace Komorebi.Utilities {
 
 	}
 
+	/* Returns an RGBA (32-bit) version of the pixbuf.
+	 *
+	 * Many GPU drivers / GLES backends cannot create 24-bit RGB_888 textures
+	 * and abort with a fatal "Failed to create texture 2d due to size/format
+	 * constraints" Cogl error. Uploading RGBA_8888 data avoids that, so every
+	 * Clutter.Image.set_data caller should pass a pixbuf through this first. */
+	public Pixbuf ensureRGBA (Pixbuf pixbuf) {
+
+		if(pixbuf.has_alpha)
+			return pixbuf;
+
+		return pixbuf.add_alpha (false, 0, 0, 0);
+	}
+
 	/* TAKEN FROM ACIS --- Until Acis is public */
 	/* Applies CSS theming for specified GTK+ Widget */
 	public void applyCSS (Widget[] widgets, string CSS) {
