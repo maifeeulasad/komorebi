@@ -248,6 +248,24 @@ namespace Komorebi.Utilities {
 
 	}
 
+	/*
+	 * Returns `value` when it is one of the allowed choices, otherwise the
+	 * given fallback. Used to constrain enum-like config fields coming from
+	 * an untrusted wallpaper pack to values the renderer actually handles.
+	 */
+	public string validatedChoice (string? value, string[] allowed, string fallback) {
+
+		if(value != null)
+			foreach(var choice in allowed)
+				if(value == choice)
+					return value;
+
+		if(value != null && value != "")
+			print(@"[WARNING]: invalid config value '$value', using '$fallback'\n");
+
+		return fallback;
+	}
+
 	void readWallpaperFile () {
 
 		// check if the wallpaper exists
@@ -288,8 +306,12 @@ namespace Komorebi.Utilities {
 		dateTimeRotationY = wallpaperKeyFile.get_double ("DateTime", "RotationY");
 		dateTimeRotationZ = wallpaperKeyFile.get_double ("DateTime", "RotationZ");
 
-		dateTimePosition = wallpaperKeyFile.get_string ("DateTime", "Position");
-		dateTimeAlignment = wallpaperKeyFile.get_string ("DateTime", "Alignment");
+		dateTimePosition = validatedChoice (wallpaperKeyFile.get_string ("DateTime", "Position"),
+			{"top_left", "top_center", "top_right",
+			 "center_left", "center", "center_right",
+			 "bottom_left", "bottom_center", "bottom_right"}, "center");
+		dateTimeAlignment = validatedChoice (wallpaperKeyFile.get_string ("DateTime", "Alignment"),
+			{"start", "center", "end"}, "center");
 		dateTimeAlwaysOnTop = wallpaperKeyFile.get_boolean ("DateTime", "AlwaysOnTop");
 
 		dateTimeColor = wallpaperKeyFile.get_string ("DateTime", "Color");
@@ -321,7 +343,8 @@ namespace Komorebi.Utilities {
 		// Asset
 		assetVisible = wallpaperKeyFile.get_boolean ("Asset", "Visible");
 
-		assetAnimationMode = wallpaperKeyFile.get_string ("Asset", "AnimationMode");
+		assetAnimationMode = validatedChoice (wallpaperKeyFile.get_string ("Asset", "AnimationMode"),
+			{"noanimation", "clouds", "light"}, "noanimation");
 		assetAnimationSpeed = wallpaperKeyFile.get_integer ("Asset", "AnimationSpeed");
 
 		assetWidth = wallpaperKeyFile.get_integer ("Asset", "Width");
