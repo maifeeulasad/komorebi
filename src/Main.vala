@@ -24,11 +24,28 @@ namespace Komorebi {
 
     public static bool checkDesktopCompatible() {
 
-        // We're not supporting Wayland at the moment
-        // due to some restrictions
-        if(Environment.get_variable ("XDG_SESSION_DESKTOP").contains("wayland")) {
+        // Komorebi is X11-only: it relies on X11 desktop-window semantics
+        // (DESKTOP window type hint, stick(), keep-below). Under Wayland the
+        // Cogl/EGL path fails and the app crashes, so refuse it up front.
+
+        // Allow an explicit override for users who want to try XWayland via
+        // `GDK_BACKEND=x11 ./komorebi`.
+        var gdkBackend = Environment.get_variable ("GDK_BACKEND");
+        if(gdkBackend != null && gdkBackend.down().contains("x11"))
+            return true;
+
+        // XDG_SESSION_TYPE is the reliable signal ("wayland" / "x11" / "tty").
+        // NB: XDG_SESSION_DESKTOP is the desktop *name* (e.g. "ubuntu") and
+        // must not be used for this check.
+        var sessionType = Environment.get_variable ("XDG_SESSION_TYPE");
+        if(sessionType != null && sessionType.down() == "wayland")
             return false;
-        }
+
+        // Fallback: a Wayland session always exports WAYLAND_DISPLAY.
+        var waylandDisplay = Environment.get_variable ("WAYLAND_DISPLAY");
+        if(waylandDisplay != null && waylandDisplay != "" &&
+           (sessionType == null || sessionType.down() != "x11"))
+            return false;
 
         return true;
     }
@@ -43,8 +60,10 @@ namespace Komorebi {
         }
 
         if(!checkDesktopCompatible()) {
-            print("[ERROR]: Wayland detected. Not supported (yet) :(\n");
-            print("[INFO]: Contribute to Komorebi and add the support! <3\n");
+            print("[ERROR]: Wayland session detected. Komorebi is X11-only and is not supported on Wayland (yet).\n");
+            print("[INFO]: Log in to an Xorg/X11 session (\"Ubuntu on Xorg\" from the login screen gear menu),\n");
+            print("[INFO]: or try running under XWayland with: GDK_BACKEND=x11 ./komorebi\n");
+            print("[INFO]: Contribute to Komorebi and add native Wayland support! <3\n");
             return;
         }
 
