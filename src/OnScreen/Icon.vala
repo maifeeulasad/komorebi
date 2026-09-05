@@ -99,10 +99,7 @@ namespace Komorebi.OnScreen {
             this.iconType = IconType.NORMAL;
 
             // Setup widgets
-            iconImage.set_data (pixbuf.get_pixels(),
-                                pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                                iconSize, iconSize,
-                                pixbuf.get_rowstride());
+            setIcon (pixbuf);
 
             titleText.set_markup(@"<span color='white' font='Lato Bold 11'>$titleName</span>");
 
@@ -113,10 +110,7 @@ namespace Komorebi.OnScreen {
             this.titleName = "Trash";
             var pixbuf = Utilities.getIconFrom("user-trash", 64);
 
-            iconImage.set_data (pixbuf.get_pixels(),
-                                pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                                iconSize, iconSize,
-                                pixbuf.get_rowstride());
+            setIcon (pixbuf);
 
             titleText.set_markup(@"<span color='white' font='Lato Bold 11'>Trash</span>");
 
@@ -129,15 +123,30 @@ namespace Komorebi.OnScreen {
 
             var pixbuf = Utilities.getIconFrom("folder", 64);
 
-            iconImage.set_data (pixbuf.get_pixels(),
-                                pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
-                                iconSize, iconSize,
-                                pixbuf.get_rowstride());
+            setIcon (pixbuf);
 
             this.iconType = IconType.EDIT;
             /*mainBox.add(entry);*/
 
             /*entry.grab_focus();*/
+        }
+
+        /* Loads pixbuf data into the icon image. Guards against a null or
+           unloadable pixbuf so a single bad icon can't crash the whole
+           desktop (Clutter.Image.set_data throws on failure). */
+        private void setIcon (Pixbuf? pixbuf) {
+
+            if(pixbuf == null)
+                return;
+
+            try {
+                iconImage.set_data (pixbuf.get_pixels(),
+                                    pixbuf.has_alpha ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888,
+                                    pixbuf.get_width(), pixbuf.get_height(),
+                                    pixbuf.get_rowstride());
+            } catch (GLib.Error e) {
+                warning ("failed to load icon '%s': %s", titleName, e.message);
+            }
         }
 
         /* Setup all signals */

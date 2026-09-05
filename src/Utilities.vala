@@ -98,32 +98,43 @@ namespace Komorebi.Utilities {
 
 		Pixbuf IconPixbuf = null;
 
-		if(icon == null || icon == "")
-			return IconPixbuf;
-
 		/* Try those methods:
 		 * 1- Icon is a file, somewhere in '/'.
 		 * 2- Icon is an icon in a IconTheme.
 		 * 3- Icon isn't in the current IconTheme.
 		 * 4- Icon is not available, use default.
 		 */
-		if(File.new_for_path(icon).query_exists()) {
-			IconPixbuf = new Pixbuf.from_file_at_scale(icon, size, size, false);
-			return IconPixbuf;
+		if(icon != null && icon != "") {
+			try {
+				if(File.new_for_path(icon).query_exists())
+					IconPixbuf = new Pixbuf.from_file_at_scale(icon, size, size, false);
+				else {
+					Gtk.IconTheme _IconTheme = Gtk.IconTheme.get_default ();
+					_IconTheme.prepend_search_path("/usr/share/pixmaps/");
+					IconPixbuf = _IconTheme.load_icon (icon, size, IconLookupFlags.FORCE_SIZE);
+				}
+			} catch (Error e) {
+				IconPixbuf = null;
+			}
 		}
 
-
-		Gtk.IconTheme _IconTheme = Gtk.IconTheme.get_default ();
-		_IconTheme.prepend_search_path("/usr/share/pixmaps/");
-
-
-		try {
-			IconPixbuf = _IconTheme.load_icon (icon, size, IconLookupFlags.FORCE_SIZE);
-		} catch (Error e) {
-			if(IconPixbuf == null)
-				IconPixbuf = _IconTheme.load_icon ("application-default-icon", size, IconLookupFlags.FORCE_SIZE);
+		// Theme fallback.
+		if(IconPixbuf == null) {
+			try {
+				IconPixbuf = Gtk.IconTheme.get_default ()
+					.load_icon ("application-default-icon", size, IconLookupFlags.FORCE_SIZE);
+			} catch (Error e) {
+				IconPixbuf = null;
+			}
 		}
 
+		// Last resort: a blank, correctly-sized pixbuf. Never return null —
+		// callers feed this straight into Clutter.Image.set_data, and a null
+		// pixbuf crashes the whole app.
+		if(IconPixbuf == null) {
+			IconPixbuf = new Pixbuf (Gdk.Colorspace.RGB, true, 8, size, size);
+			IconPixbuf.fill (0x00000000);
+		}
 
 		return IconPixbuf;
 
@@ -276,7 +287,10 @@ namespace Komorebi.Utilities {
 		if(name == null || name == "" || name == "." || name == "..")
 			return false;
 
-		if(name.contains("/") || name.contains("\\") || name.contains("\0"))
+		// Note: don't test for an embedded NUL here — a Vala/KeyFile string is
+		// NUL-terminated, so `"\0"` is an empty needle and `contains` would
+		// always match, rejecting every name.
+		if(name.contains("/") || name.contains("\\"))
 			return false;
 
 		return true;
