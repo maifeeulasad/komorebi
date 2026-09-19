@@ -107,7 +107,12 @@ namespace Komorebi.OnScreen {
 			hardenWebView();
 			webViewActor = new GtkClutter.Actor.with_contents(webView);
 
-			if(enableVideoWallpapers) {
+			// Only build a GStreamer pipeline when a video wallpaper is *actually*
+			// active. Creating a ClutterGst.Playback unconditionally makes Cogl
+			// allocate a blank-frame texture during construction, which aborts
+			// with "Failed to create texture 2d due to size/format constraints"
+			// on several GLES / XWayland configurations even for image wallpapers.
+			if(enableVideoWallpapers && wallpaperType == "video") {
 				videoPlayback = new ClutterGst.Playback ();
 				videoContent = new ClutterGst.Content();
 				videoPlayback.set_seek_flags (ClutterGst.SeekFlags.ACCURATE);
@@ -322,9 +327,7 @@ namespace Komorebi.OnScreen {
 				wallpaperActor.scale_x = 1.00f;   
 			}
 
-			if(enableVideoWallpapers) {
-				
-				if(wallpaperType == "video") {
+			if(enableVideoWallpapers && wallpaperType == "video" && videoPlayback != null) {
 
 					var videoPath = @"file:///System/Resources/Komorebi/$wallpaperName/$videoFileName";
 					videoPlayback.uri = videoPath;
@@ -334,11 +337,10 @@ namespace Komorebi.OnScreen {
 
 					return;
 				
-				} else {
+				} else if(videoPlayback != null) {
 				
 					videoPlayback.playing = false;
 					videoPlayback.uri = "";
-				}
 			}
 
 			if (wallpaperType == "web_page") {
@@ -362,15 +364,29 @@ namespace Komorebi.OnScreen {
 
 			wallpaperActor.set_content(wallpaperImage);
 
-			wallpaperPixbuf = new Gdk.Pixbuf.from_file_at_scale(@"/System/Resources/Komorebi/$wallpaperName/wallpaper.jpg",
-																scaleWidth, scaleHeight, false);
+			try {
+				wallpaperPixbuf = new Gdk.Pixbuf.from_file_at_scale(@"/System/Resources/Komorebi/$wallpaperName/wallpaper.jpg",
+																	scaleWidth, scaleHeight, false);
+			} catch (GLib.Error e) {
+				warning ("failed to load wallpaper image '%s': %s", wallpaperName, e.message);
+				// Fall back to a plain black texture instead of aborting the
+				// whole desktop over a corrupt/missing wallpaper pack.
+				wallpaperPixbuf = new Gdk.Pixbuf (Gdk.Colorspace.RGB, true, 8, scaleWidth, scaleHeight);
+				wallpaperPixbuf.fill ((uint32) 0xff000000);
+			}
 
 			// Upload RGBA — RGB_888 textures abort on many drivers.
+			// Some GL/EGL fallbacks can't create textures at all; degrade to a
+			// plain black wallpaper instead of leaking CRITICALs to the user.
 			wallpaperPixbuf = Utilities.ensureRGBA (wallpaperPixbuf);
 
-			wallpaperImage.set_data (wallpaperPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
-							 wallpaperPixbuf.get_width(), wallpaperPixbuf.get_height(),
-							 wallpaperPixbuf.get_rowstride());
+			try {
+				wallpaperImage.set_data (wallpaperPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
+								 wallpaperPixbuf.get_width(), wallpaperPixbuf.get_height(),
+								 wallpaperPixbuf.get_rowstride());
+			} catch (GLib.Error e) {
+				wallpaperActor.set_content(null);
+			}
 		}
 
 		public bool dimWallpaper () {

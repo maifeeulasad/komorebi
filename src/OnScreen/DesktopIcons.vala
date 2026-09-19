@@ -120,7 +120,12 @@ namespace Komorebi.OnScreen {
                 if(DFile.get_basename().has_suffix(".desktop")) {
 
                     var keyFile = new KeyFile();
-                    keyFile.load_from_file(DFile.get_path(), 0);
+                    try {
+                        keyFile.load_from_file(DFile.get_path(), 0);
+                    } catch (GLib.Error e) {
+                        print ("[WARNING]: skipping invalid .desktop file '%s': %s\n", DFile.get_path(), e.message);
+                        continue;
+                    }
 
                     // make sure the keyFile has the required keys
                     if(!keyFile.has_key(KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME) ||
@@ -149,15 +154,30 @@ namespace Komorebi.OnScreen {
                             iconPath = "folder";
                         else {
 
-                            var iconQuery = DFile.query_info("standard::icon", 0).get_icon ().to_string().split(" ");
-                            if(iconQuery.length > 1)
-                                iconPath = iconQuery[iconQuery.length - 1];
+                            // query_info / get_icon can fail or yield nothing for
+                            // broken symlinks; never let that abort the desktop.
+                            try {
+                                var iconDescription = DFile.query_info("standard::icon", 0).get_icon ();
+                                if(iconDescription != null) {
+                                    var iconQuery = iconDescription.to_string().split(" ");
+                                    if(iconQuery.length > 1)
+                                        iconPath = iconQuery[iconQuery.length - 1];
+                                }
+                            } catch (GLib.Error e) {
+                                print ("[WARNING]: could not read icon info for '%s': %s\n", FilePath, e.message);
+                            }
                         }
 
                         iconPixbuf = Utilities.getIconFrom(iconPath, iconSize);
 
-                    } else
-                        iconPixbuf = new Gdk.Pixbuf.from_file_at_scale(iconPath, iconSize, iconSize, false);
+                    } else {
+                        try {
+                            iconPixbuf = new Gdk.Pixbuf.from_file_at_scale(iconPath, iconSize, iconSize, false);
+                        } catch (GLib.Error e) {
+                            print ("[WARNING]: could not load icon pixbuf '%s': %s\n", iconPath, e.message);
+                            iconPixbuf = Utilities.getIconFrom(null, iconSize);
+                        }
+                    }
 
 
                     icon = new Icon(this, name, iconPixbuf, "", DFile.get_path(), false);
@@ -223,7 +243,16 @@ namespace Komorebi.OnScreen {
 
             var Query = "%s,%s,%s,%s".printf(Thumb, Standard, CustomIcon, CustomName);
 
-            var Info = file.query_info (Query, 0);
+            FileInfo Info = null;
+            try {
+                Info = file.query_info (Query, 0);
+            } catch (GLib.Error e) {
+                print ("[WARNING]: could not query file info for '%s': %s\n", file.get_path(), e.message);
+                return null;
+            }
+
+            if(Info == null)
+                return null;
 
             // look for a thumbnail
             var thumb_icon = Info.get_attribute_byte_string (Thumb);

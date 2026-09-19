@@ -213,10 +213,12 @@ namespace Komorebi.OnScreen {
 
 				if (showDesktopIcons) {
 					foreach (BackgroundWindow backgroundWindow in backgroundWindows)
-						backgroundWindow.desktopIcons.fadeIn();
+						if(backgroundWindow.desktopIcons != null)
+							backgroundWindow.desktopIcons.fadeIn();
 				} else {
 					foreach (BackgroundWindow backgroundWindow in backgroundWindows)
-						backgroundWindow.desktopIcons.fadeOut();
+						if(backgroundWindow.desktopIcons != null)
+							backgroundWindow.desktopIcons.fadeOut();
 				}
 			});
 
