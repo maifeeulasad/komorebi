@@ -54,29 +54,34 @@ namespace Komorebi {
 
         print("Welcome to Komorebi\n");
 
-        if(args[1] == "--version" || args[1] == "version") {
+        if(args.length > 1 && (args[1] == "--version" || args[1] == "version")) {
             print("Version: 2.1 - Summit\nCreated by: @christianloopp\n\n");
             return;
         }
 
         if(!checkDesktopCompatible()) {
-            print("[ERROR]: Wayland session detected. Komorebi is X11-only and is not supported on Wayland (yet).\n");
-            print("[INFO]: Log in to an Xorg/X11 session (\"Ubuntu on Xorg\" from the login screen gear menu),\n");
-            print("[INFO]: or try running under XWayland with: GDK_BACKEND=x11 ./komorebi\n");
-            print("[INFO]: Contribute to Komorebi and add native Wayland support! <3\n");
-            return;
+
+            // Wayland detected. Instead of bailing, automatically fall back to
+            // the X11 display (XWayland) when the compositor exposes one, so
+            // launching Komorebi from the menu or autostart just works. GTK
+            // reads GDK_BACKEND while initializing, so this must happen before
+            // GtkClutter.init / Gtk.init below.
+            var x11Display = Environment.get_variable ("DISPLAY");
+            if(x11Display == null || x11Display == "") {
+                print("[ERROR]: Wayland session detected and no X11 display (XWayland) is available.\n");
+                print("[INFO]: Log in to an Xorg/X11 session (\"Ubuntu on Xorg\" from the login screen gear menu).\n");
+                print("[INFO]: Contribute to Komorebi and add native Wayland support! <3\n");
+                return;
+            }
+
+            print(@"[INFO]: Wayland session detected; running on XWayland (DISPLAY=$x11Display).\n");
+            Environment.set_variable ("GDK_BACKEND", "x11", true);
         }
 
         GtkClutter.init (ref args);
         Gtk.init (ref args);
 
         readConfigurationFile();
-
-        if(OnScreen.enableVideoWallpapers) {
-
-            print("[INFO]: loading Gst\n");
-            Gst.init (ref args);
-        }
 
         Gtk.Settings.get_default().gtk_application_prefer_dark_theme = true;
 
@@ -87,6 +92,16 @@ namespace Komorebi {
         initializeClipboard(screen);
 
         readWallpaperFile();
+
+        // GStreamer is only needed when we actually render a *video* wallpaper.
+        // Creating a ClutterGst.Playback for image/web_page wallpapers is not
+        // only wasteful: it makes Cogl allocate a blank-frame texture up front,
+        // which aborts on several GLES/XWayland configurations.
+        if(enableVideoWallpapers && wallpaperType == "video") {
+
+            print("[INFO]: loading Gst\n");
+            Gst.init (ref args);
+        }
 
         backgroundWindows = new BackgroundWindow[monitorCount];
         for (int i = 0; i < monitorCount; ++i)
