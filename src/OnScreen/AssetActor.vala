@@ -58,15 +58,28 @@ namespace Komorebi.OnScreen {
                 return;
             }
 
-            if(assetWidth != 0 && assetHeight != 0)
-                pixbuf = new Gdk.Pixbuf.from_file_at_scale(assetPath, assetWidth, assetHeight, false);
-            else
-                pixbuf = new Gdk.Pixbuf.from_file(assetPath);
+            try {
+                if(assetWidth != 0 && assetHeight != 0)
+                    pixbuf = new Gdk.Pixbuf.from_file_at_scale(assetPath, assetWidth, assetHeight, false);
+                else
+                    pixbuf = new Gdk.Pixbuf.from_file(assetPath);
+            } catch (GLib.Error e) {
+                print(@"[WARNING]: could not load asset '$assetPath': $(e.message)\n");
+                return;
+            }
 
             var rgbaPixbuf = Utilities.ensureRGBA (pixbuf);
-            image.set_data (rgbaPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
-                            rgbaPixbuf.get_width(), rgbaPixbuf.get_height(),
-                            rgbaPixbuf.get_rowstride());
+
+            // Some GL/EGL fallbacks can't create textures; treat it as "no asset"
+            // rather than letting the uncaught error print a CRITICAL.
+            try {
+                image.set_data (rgbaPixbuf.get_pixels(), Cogl.PixelFormat.RGBA_8888,
+                                rgbaPixbuf.get_width(), rgbaPixbuf.get_height(),
+                                rgbaPixbuf.get_rowstride());
+            } catch (GLib.Error e) {
+                print(@"[WARNING]: could not upload asset texture: $(e.message)\n");
+                return;
+            }
 
 
             x = 0;

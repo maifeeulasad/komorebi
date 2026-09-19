@@ -65,8 +65,9 @@ namespace Komorebi.OnScreen {
 
 			clearGrid();
 
-			foreach(var thumbnail in thumbnailsList)
-				thumbnailsList.remove(thumbnail);
+			// Drop the old thumbnails without touching the list mid-iteration
+			// (removing while foreach-ing over a GLib.List is undefined).
+			thumbnailsList = new List<Thumbnail>();
 
 			File wallpapersFolder = File.new_for_path("/System/Resources/Komorebi");
 

@@ -194,9 +194,10 @@ namespace Komorebi.OnScreen {
 
 			} else {
 
-				// Dim all icons
-				foreach (var icon in parent.desktopIcons.iconsList)
-					icon.dimIcon();
+				// Dim all icons (monitor 0 only; secondary monitors have no icon grid)
+				if(parent.desktopIcons != null)
+					foreach (var icon in parent.desktopIcons.iconsList)
+						icon.dimIcon();
 
 				// Check if we have anything in the clipboard,
 				// if not, disable the 'Paste' menu item
@@ -261,8 +262,9 @@ namespace Komorebi.OnScreen {
 			remove_all_children();
 
 			// Undim all icon
-			foreach (var icon in parent.desktopIcons.iconsList)
-				icon.unDimIcon();
+			if(parent.desktopIcons != null)
+				foreach (var icon in parent.desktopIcons.iconsList)
+					icon.unDimIcon();
 
 			icon = null;
 		}

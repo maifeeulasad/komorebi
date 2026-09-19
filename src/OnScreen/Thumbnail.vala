@@ -48,7 +48,14 @@ namespace Komorebi.OnScreen {
 
 			this.name = name;
 
-			thumbnailImage.pixbuf = new Gdk.Pixbuf.from_file_at_scale(path + name + "/wallpaper.jpg", 150, 100, false);
+			try {
+				thumbnailImage.pixbuf = new Gdk.Pixbuf.from_file_at_scale(path + name + "/wallpaper.jpg", 150, 100, false);
+			} catch (GLib.Error e) {
+				print(@"[WARNING]: could not load thumbnail for '$name': $(e.message)\n");
+				// A blank pixbuf keeps the cell clickable and the list stable.
+				thumbnailImage.pixbuf = new Gdk.Pixbuf (Gdk.Colorspace.RGB, false, 8, 150, 100);
+				thumbnailImage.pixbuf.fill (0x00000000);
+			}
 
 			// Signals
 			button_release_event.connect(() => {
